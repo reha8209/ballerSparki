@@ -14,7 +14,6 @@
 // Robot constants
 #define DISTANCE_MARGIN 0.02 // 2cm of tolerance
 #define HEADING_MARGIN 0.061 // ~3.5 degrees of tolerance
-
 #define ROBOT_SPEED 0.0278
 #define CYCLE_TIME .100
 #define AXLE_DIAMETER 0.0865
@@ -24,20 +23,20 @@
 #define NONE 0
 #define BCK -1
 
-#define INITIAL_GOAL_STATE_I 3
-#define INITIAL_GOAL_STATE_J 0
+#define INITIAL_GOAL_STATE_I -1
+#define INITIAL_GOAL_STATE_J -1
 
 // Number of vertices to discretize the map
-#define NUM_X_CELLS 4
-#define NUM_Y_CELLS 4
+#define NUM_X_CELLS 6
+#define NUM_Y_CELLS 6
 
-// Map is ~60cm x 42cm
-#define MAP_SIZE_X 0.6
+// Map is ~42cm x 42cm
+#define MAP_SIZE_X 0.42
 #define MAP_SIZE_Y 0.42
 
 #define BIG_NUMBER 255
 
-int current_state = STATE_START; // Change this variable to determine which controller to run
+int current_state = STATE_GET_COMMAND; // Change this variable to determine which controller to run
 
 short prev_holder[NUM_X_CELLS*NUM_Y_CELLS];
 
@@ -62,6 +61,7 @@ float next_y = -1;
 float next_theta = 0;
 
 bool world_map[NUM_Y_CELLS][NUM_X_CELLS];
+
 // Example source/dest pair: Move from (0,0) to (2,1)
 bool goal_changed = TRUE; // Track if the goal coordinates have been changed since we last path planned.
 int goal_i = INITIAL_GOAL_STATE_I;
@@ -75,7 +75,7 @@ long program_start_time = 0; // Track time since controller began
 
 void setup() {
 
-  delay(5000); //DELETE THIS LINE
+  delay(5000); //Wait 5 seconds
   
   // IK Setup
   Serial.begin(9600);
@@ -93,10 +93,13 @@ void setup() {
       world_map[j][i] = 1;
     }
   }
-  world_map[1][1]=0;
-  world_map[0][3] = 0;
-  world_map[2][0] = 0;
-  world_map[2][1] = 0; // Example of setup code to indicate an obstacle at grid position (0,1)
+  
+  
+  //SETTING THE OBSTACLES (INCLUDE OBSTACLE CELLS FROM OUR COMPUTER VISION MANUALLY)
+  // world_map[i][j] = 0;
+  world_map[1][4] = 0;
+  world_map[3][2] = 0;
+    
   program_start_time = millis();
 }
 
@@ -431,9 +434,50 @@ void loop () {
   
   Serial.println(current_state);
   switch(current_state){
+
+     
       // state 1
-      case STATE_GET_COMMAND:{
-        
+      case STATE_GET_COMMAND:{           
+          // Possible goals (i,j)
+          // Line 3: (3,0) or (3,6)
+          // Line 2: (4,1) or (4,5)
+          // Line 1: (5,2) or (5,4)
+
+          Serial.println("test");
+          
+          int dest_line = 3; // eventually get this from bluetooth
+          if (dest_line == 3){
+            goal_i = 3; 
+          }
+          if (dest_line == 2){
+            goal_i = 4; 
+          }
+          if (dest_line == 1){
+            goal_i = 5; 
+          }
+          int choose_corner = random(0,2);
+          if (choose_corner == 0){
+            if (dest_line == 3){
+              goal_j = 0; 
+            }
+            if (dest_line == 2){
+              goal_j = 1; 
+            }
+            if (dest_line == 1){
+              goal_j = 2; 
+            }
+          }            
+          if (choose_corner == 1){
+            if (dest_line == 3){
+              goal_j = 6; 
+            }
+            if (dest_line == 2){
+              goal_j = 5; 
+            }
+            if (dest_line == 1){
+              goal_j = 4; 
+            }
+          }
       }
       break;
       // state 2
