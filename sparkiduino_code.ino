@@ -3,11 +3,11 @@
 #define FALSE 0
 
 // States
-#define STATE_GET_COMMAND 1 // recieve and process bluetooth command of which line to travel to
+#define STATE_GET_COMMAND 1 // recieve and process command of which line to travel to
 #define STATE_START 2 // path planning using dijsktra
 #define STATE_HAS_PATH 3 // figure out where we currently are and where we want to travel
 #define STATE_SEEKING_POSE 4 // moving to the next pose
-#define STATE_IN_POSITION 5 // reached the destination pose (line to shoot from) and make final angle adjustments (from bluetooth)
+#define STATE_IN_POSITION 5 // reached the destination pose (line to shoot from) and make final angle adjustments 
 #define STATE_SHOOT 6 // trigger motor/catapult assembly
 #define STATE_IDLE 7
 
@@ -31,8 +31,8 @@
 #define NUM_Y_CELLS 6
 
 // Map is ~42cm x 42cm
-#define MAP_SIZE_X 0.42
-#define MAP_SIZE_Y 0.42
+#define MAP_SIZE_X 0.61
+#define MAP_SIZE_Y 0.61
 
 #define BIG_NUMBER 255
 
@@ -73,12 +73,22 @@ short *path = NULL;
 
 long program_start_time = 0; // Track time since controller began
 
+int choose_corner = 0;
+
 void setup() {
 
   delay(5000); //Wait 5 seconds
+  randomSeed(analogRead(0));
+   choose_corner = 0; // 0 is left and 1 is right 
+          for (int i=0; i < 6; i++){
+            choose_corner = random(0,2);
+          }          
+  
+  
+  
   
   // IK Setup
-  Serial.begin(9600);
+  Serial.begin(9600); // open serial port for debugging
   pose_x = 0.;
   pose_y = 0.;
   pose_theta = 0.;
@@ -95,10 +105,11 @@ void setup() {
   }
   
   
-  //SETTING THE OBSTACLES (INCLUDE OBSTACLE CELLS FROM OUR COMPUTER VISION MANUALLY)
+  //SETTING THE OBSTACLES 
   // world_map[i][j] = 0;
-  world_map[1][4] = 0;
-  world_map[3][2] = 0;
+  world_map[0][1] = 0;
+  world_map[2][0] = 0;
+  world_map[3][1] = 0;
     
   program_start_time = millis();
 }
@@ -387,24 +398,24 @@ void displayOdometry() {
   sparki.clearLCD();
   sparki.print("X: ");
   sparki.print(pose_x);
-  sparki.print(" Xg: ");
-  sparki.println(dest_pose_x);
-  sparki.print("Y: ");
-  sparki.print(pose_y);
-  sparki.print(" Yg: ");
-  sparki.println(dest_pose_y); 
-  sparki.print("T: ");
-  sparki.print(pose_theta*180./M_PI);
-  sparki.print(" Tg: ");
-  sparki.println(dest_pose_theta*180./M_PI);
-
-//  sparki.print("dX : ");
-//  sparki.print(dX );
-//  sparki.print("   dT: ");
-//  sparki.println(dTheta);
-  sparki.print("phl: "); sparki.print(phi_l); sparki.print(" phr: "); sparki.println(phi_r);
-  sparki.print("p: "); sparki.print(d_err); sparki.print(" a: "); sparki.println(to_degrees(b_err));
-  sparki.print("h: "); sparki.println(to_degrees(h_err));  
+//  sparki.print(" Xg: ");
+//  sparki.println(dest_pose_x);
+//  sparki.print("Y: ");
+//  sparki.print(pose_y);
+//  sparki.print(" Yg: ");
+//  sparki.println(dest_pose_y); 
+//  sparki.print("T: ");
+//  sparki.print(pose_theta*180./M_PI);
+//  sparki.print(" Tg: ");
+//  sparki.println(dest_pose_theta*180./M_PI);
+//
+////  sparki.print("dX : ");
+////  sparki.print(dX );
+////  sparki.print("   dT: ");
+////  sparki.println(dTheta);
+//  sparki.print("phl: "); sparki.print(phi_l); sparki.print(" phr: "); sparki.println(phi_r);
+//  sparki.print("p: "); sparki.print(d_err); sparki.print(" a: "); sparki.println(to_degrees(b_err));
+//  sparki.print("h: "); sparki.println(to_degrees(h_err));  
   sparki.updateLCD();
 }
 
@@ -429,7 +440,8 @@ void loop () {
   /****************************************/
 
   if (goal_changed){ //if we need to recalculate a path to new goal
-    current_state = STATE_START;    
+    current_state = STATE_GET_COMMAND; 
+    goal_changed = FALSE;   
   }
   
   Serial.println(current_state);
@@ -439,47 +451,58 @@ void loop () {
       // state 1
       case STATE_GET_COMMAND:{           
           // Possible goals (i,j)
-          // Line 3: (3,0) or (3,6)
-          // Line 2: (4,1) or (4,5)
-          // Line 1: (5,2) or (5,4)
+          // Line 3: (3,0) or (3,5)
+          // Line 2: (4,1) or (4,4)
+          // Line 1: (5,2) or (5,3)
 
           Serial.println("test");
           
-          int dest_line = 3; // eventually get this from bluetooth
+          int dest_line = 3; // where to shoot from
           if (dest_line == 3){
-            goal_i = 3; 
+            goal_j = 3; 
           }
           if (dest_line == 2){
-            goal_i = 4; 
+            goal_j = 4; 
           }
           if (dest_line == 1){
-            goal_i = 5; 
+            goal_j = 5; 
           }
-          int choose_corner = random(0,2);
+         // randomSeed(analogRead(0));
+             
           if (choose_corner == 0){
             if (dest_line == 3){
-              goal_j = 0; 
+              goal_i = 0; 
             }
             if (dest_line == 2){
-              goal_j = 1; 
+              goal_i = 1; 
             }
             if (dest_line == 1){
-              goal_j = 2; 
+              goal_i = 2; 
             }
           }            
           if (choose_corner == 1){
             if (dest_line == 3){
-              goal_j = 6; 
+              goal_i = 5; 
             }
             if (dest_line == 2){
-              goal_j = 5; 
+              goal_i = 4; 
             }
             if (dest_line == 1){
-              goal_j = 4; 
+              goal_i = 3; 
             }
           }
+          Serial.println("goal i");
+          Serial.println(goal_i);
+          Serial.println("goal_j");
+          Serial.println(goal_j);
+         
+          current_state = STATE_START;
+
       }
+      
+      
       break;
+      
       // state 2
       case STATE_START: {
           //get current robot i and j
@@ -506,7 +529,7 @@ void loop () {
             
       }
       
-
+      break;
       // state 3
       case STATE_HAS_PATH:{
                int idx = 0;
@@ -558,7 +581,15 @@ void loop () {
           
           
           if (next_next_vertex == -1){ //if it doesn't matter where we face at the end...
-              next_theta = 0;
+              //next_theta = 0;
+
+              if (choose_corner == 0){
+                next_theta = 3.14159 / 4.0;
+              }
+
+              if (choose_corner == 1){
+                next_theta = 3.0 * 3.14159 / 4.0;
+              }
           }          
           else{
               // Finding coordinates of next next vertex
@@ -571,7 +602,7 @@ void loop () {
           set_pose_destination(next_x,next_y,next_theta);
           current_state = STATE_SEEKING_POSE;
       }
-          break;
+      break;
 
       //state 4
       case STATE_SEEKING_POSE:{
@@ -583,6 +614,7 @@ void loop () {
             set_IK_motor_rotations();
             
             if (is_robot_at_IK_destination_pose()) {
+              Serial.println("at goal");
               moveStop();
               current_state=STATE_HAS_PATH;
               break;
@@ -613,13 +645,13 @@ void loop () {
   // TODO: Do something with path here instead of just displaying it!
   
   sparki.clearLCD();
-  sparki.print("Source: "); sparki.print(source_i); sparki.print(", "); sparki.println(source_j);
-  sparki.print("Goal: "); sparki.print(goal_i); sparki.print(", "); sparki.println(goal_j);
-  for (int i=0; path[i] != -1; ++i) {
-    sparki.print(path[i]);
-    sparki.print(" -> "); 
-  }
-  sparki.println(" DONE! "); 
+  //sparki.print("Source: "); sparki.print(source_i); sparki.print(", "); sparki.println(source_j);
+  //sparki.print("Goal: "); sparki.print(goal_i); sparki.print(", "); sparki.println(goal_j);
+  //for (int i=0; path[i] != -1; ++i) {
+   // sparki.print(path[i]);
+   // sparki.print(" -> "); 
+ // }
+  //sparki.println(" DONE! "); 
   sparki.updateLCD();
   
   //delete path; path=NULL; // Important! Delete the arrays returned from reconstruct_path when you're done with them!
@@ -632,4 +664,3 @@ void loop () {
   else
     delay(10); // Accept some error
 }
-
